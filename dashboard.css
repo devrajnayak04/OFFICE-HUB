@@ -1,0 +1,19 @@
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #f4f7fa;
+    margin: 0;
+    color: #333;
+}
+.container { display: flex; }
+.sidebar {
+    width: 250px;
+    background-color: #1e1e2d;
+    color: #a2a3b7;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+}
+/* ... (All other professional styles from it-dashboard.css, adapted for cleaning) ... */
+.action-btn.complete-btn {
+    background-color: #2ecc71; /* Green for complete */
+}

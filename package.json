@@ -1,0 +1,25 @@
+{
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "compression": "^1.8.1",
+    "connect-mongo": "^5.1.0",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "mongodb": "^6.19.0",
+    "mongoose": "^8.18.0",
+    "path": "^0.12.7",
+    "socket.io": "^4.8.1"
+  },
+  "name": "jce-nexus-hub",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - JC Nexus Hub</title>
+    <link rel="stylesheet" href="admin-dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Logo" class="logo">
+                <span>Admin Panel</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="active"><a href="/admin-dashboard">Global Dashboard</a></li>
+                <li><a href="/user-management">User Management</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>System Overview</h1>
+                <div class="user-info">
+                    <span id="admin-email">Loading...</span>
+                </div>
+            </header>
+
+            <section class="summary-cards">
+                <div class="summary-card">
+                    <i class="fas fa-users icon-users"></i>
+                    <div class="card-content">
+                        <h3 id="total-users">0</h3>
+                        <p>Total Users</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <i class="fas fa-hourglass-start icon-pending"></i>
+                    <div class="card-content">
+                        <h3 id="pending-requests">0</h3>
+                        <p>Pending Requests</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <i class="fas fa-check-circle icon-completed"></i>
+                    <div class="card-content">
+                        <h3 id="completed-today">0</h3>
+                        <p>Completed Today</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="dashboard-grid">
+                <div class="chart-container">
+                    <h3>Requests by Service Type</h3>
+                    <canvas id="serviceChart"></canvas>
+                </div>
+                <div class="info-container">
+                    <h3>About The Admin Panel</h3>
+                    <p>Welcome to the Nexus Hub's central command. This dashboard provides a global, real-time view of all internal service requests and user activity. Use these analytics to monitor operational efficiency and manage system users.</p>
+                    <div class="company-info">
+                        <img src="logo.png" alt="Company Logo" class="company-logo">
+                        <div>
+                            <h4>JC ELETRONICA PVT LIMITED</h4>
+                            <p>Epitome of Prowess</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tickets-table-container">
+                <h2>Live Activity Feed</h2>
+                <table id="live-feed-table">
+                    <thead><tr><th>Time</th><th>Employee</th><th>Service</th><th>Details</th><th>Status</th></tr></thead>
+                    <tbody id="live-feed-tbody"></tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let serviceChartInstance;
+
+        function loadDashboardData() {
+            fetch('/api/admin/summary')
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('total-users').textContent = data.counts.users;
+                    document.getElementById('pending-requests').textContent = data.counts.pending;
+                    document.getElementById('completed-today').textContent = data.counts.completedToday;
+                    renderServiceChart(data.charts.byService);
+                    renderLiveFeed(data.liveFeed);
+                });
+        }
+
+        function renderServiceChart(chartData) {
+            const ctx = document.getElementById('serviceChart').getContext('2d');
+            const labels = chartData.map(d => d._id);
+            const data = chartData.map(d => d.count);
+            if (serviceChartInstance) serviceChartInstance.destroy();
+            serviceChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Requests',
+                        data: data,
+                        backgroundColor: ['#8B0000', '#2ecc71', '#3498db'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            });
+        }
+
+        function renderLiveFeed(feed) {
+            const tbody = document.getElementById('live-feed-tbody');
+            tbody.innerHTML = '';
+            if (feed.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No recent activity.</td></tr>';
+                return;
+            }
+            feed.forEach(item => {
+                const row = document.createElement('tr');
+                const time = new Date(item.createdAt).toLocaleTimeString('en-IN');
+                row.innerHTML = `
+                    <td>${time}</td>
+                    <td>${item.employeeName}</td>
+                    <td>${item.type}</td>
+                    <td>${item.details}</td>
+                    <td><span class="status status-${item.status.toLowerCase().replace(' ', '-')}">${item.status}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/api/user-info').then(res => res.json()).then(user => {
+                document.getElementById('admin-email').textContent = user.fullName;
+            });
+            loadDashboardData();
+
+            socket.on('new-ticket', loadDashboardData);
+            socket.on('ticket-updated', loadDashboardData);
+            socket.on('new-cleaning', loadDashboardData);
+            socket.on('cleaning-request-updated', loadDashboardData);
+            socket.on('new-order', loadDashboardData);
+            socket.on('order-updated', loadDashboardData);
+        });
+    </script>
+</body>
+</html>

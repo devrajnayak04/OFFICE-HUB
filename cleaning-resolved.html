@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completed Requests - Cleaning Dashboard</title>
+    <link rel="stylesheet" href="cleaning-resolved.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Logo" class="logo">
+                <span>Cleaning Services</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="/cleaning-dashboard">Live Requests</a></li>
+                <li class="active"><a href="/cleaning-resolved">Completed Archive</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Completed Request Archive</h1>
+            </header>
+
+            <section class="summary-cards">
+                <div class="summary-card">
+                    <i class="fas fa-check-double icon-completed"></i>
+                    <div class="card-content">
+                        <h3 id="total-completed">0</h3>
+                        <p>Total Completed</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <i class="fas fa-clock icon-time"></i>
+                    <div class="card-content">
+                        <h3 id="avg-time">0h 0m</h3>
+                        <p>Avg. Completion Time</p>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <i class="fas fa-star icon-rating"></i>
+                    <div class="card-content">
+                        <h3 id="avg-rating">N/A</h3>
+                        <p>Avg. Employee Rating</p>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="info-container">
+                <h3>About This Archive</h3>
+                <p>This page serves as a complete record of all completed cleaning requests. Use this data to track team performance, manage workloads, and ensure a high standard of cleanliness throughout the facility.</p>
+            </section>
+
+            <div id="resolved-requests-grid" class="resolved-requests-grid">
+                </div>
+        </main>
+    </div>
+
+    <div id="chat-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeChatModal()">&times;</span>
+            <h2>Chat History for Request <span id="chat-request-id-display"></span></h2>
+            <div id="chat-history" class="chat-history"></div>
+        </div>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        function loadResolvedData() {
+            fetch('/api/cleaning/resolved-summary')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('total-completed').textContent = data.summary.totalCompleted;
+                    document.getElementById('avg-time').textContent = data.summary.averageCompletionTime;
+                    
+                    const ratedRequests = data.requests.filter(r => r.rating);
+                    if (ratedRequests.length > 0) {
+                        const avgRating = ratedRequests.reduce((acc, r) => acc + r.rating, 0) / ratedRequests.length;
+                        document.getElementById('avg-rating').textContent = `${avgRating.toFixed(1)} / 5.0`;
+                    } else {
+                        document.getElementById('avg-rating').textContent = 'N/A';
+                    }
+                    
+                    renderRequestCards(data.requests);
+                });
+        }
+
+        function renderRequestCards(requests) {
+            const grid = document.getElementById('resolved-requests-grid');
+            grid.innerHTML = '';
+            if (requests.length === 0) {
+                grid.innerHTML = '<p>No completed requests found.</p>';
+                return;
+            }
+            requests.forEach(req => {
+                const card = document.createElement('div');
+                card.className = 'request-card';
+                
+                const requestedDate = new Date(req.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+                const completedDate = req.completedAt ? new Date(req.completedAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A';
+                
+                let completionTime = 'N/A';
+                if(req.completedAt && req.createdAt) {
+                    const timeDiff = new Date(req.completedAt) - new Date(req.createdAt);
+                    const hours = Math.floor(timeDiff / 3600000);
+                    const minutes = Math.floor((timeDiff % 3600000) / 60000);
+                    completionTime = `${hours}h ${minutes}m`;
+                }
+
+                const stars = req.rating ? '★'.repeat(req.rating) + '☆'.repeat(5 - req.rating) : 'Not Rated';
+                const completedByText = req.completedBy ? `Note by ${req.completedBy}:` : 'Closing Note:';
+                const feedbackByText = req.employeeName ? `Feedback by ${req.employeeName}:` : 'Employee Feedback:';
+                
+                card.innerHTML = `
+                    <div class="request-card-header">
+                        <h3>Location: ${req.deskNumber ? `${req.floorNumber}, Desk ${req.deskNumber}` : req.location}</h3>
+                        <button class="action-btn chat-btn" onclick="openChatModal('${req._id}')">View Chat</button>
+                    </div>
+                    <div class="request-card-body">
+                        <div class="detail-row"><span>Employee Name:</span><p>${req.employeeName}</p></div>
+                        <div class="detail-row"><span>Requested Time:</span><p>${requestedDate}</p></div>
+                        <div class="detail-row"><span>Completed Time:</span><p>${completedDate}</p></div>
+                        <div class="detail-row"><span>Time to Complete:</span><p>${completionTime}</p></div>
+                        <div class="closing-note"><h4>${completedByText}</h4><p>${req.closingNote || 'N/A'}</p></div>
+                        <div class="closing-note feedback-note"><h4 style="color: #004085;">${feedbackByText}</h4><div class="detail-row" style="border:none; padding: 0;"><span>Rating:</span><p class="star-rating-display">${stars}</p></div><p>${req.review || 'No review submitted.'}</p></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        const chatModal = document.getElementById('chat-modal');
+        function openChatModal(requestId) {
+            document.getElementById('chat-request-id-display').textContent = `#${requestId.slice(-6).toUpperCase()}`;
+            fetch(`/api/cleaning/details/${requestId}`).then(res => res.json()).then(request => {
+                const chatHistoryDiv = document.getElementById('chat-history');
+                chatHistoryDiv.innerHTML = '';
+                if (request.chatHistory && request.chatHistory.length > 0) {
+                    request.chatHistory.forEach(msg => {
+                        const msgDiv = document.createElement('div');
+                        const isSent = msg.senderRole === 'Cleaning';
+                        msgDiv.classList.add('chat-message', isSent ? 'sent' : 'received');
+                        msgDiv.innerHTML = `<strong>${msg.senderName}:</strong> ${msg.message}`;
+                        chatHistoryDiv.appendChild(msgDiv);
+                    });
+                } else {
+                    chatHistoryDiv.innerHTML = '<p style="text-align:center; color:#777;">No chat history for this request.</p>';
+                }
+            });
+            chatModal.style.display = 'block';
+        }
+        function closeChatModal() { 
+            chatModal.style.display = 'none'; 
+        }
+        window.onclick = function(event) {
+            if (event.target == chatModal) {
+                closeChatModal();
+            }
+        }
+
+        // --- Initial Load and Real-Time Listener ---
+        document.addEventListener('DOMContentLoaded', loadResolvedData);
+        
+        socket.on('cleaning-request-updated', (updatedRequest) => {
+            console.log('Cleaning request was updated, refreshing history...');
+            loadResolvedData();
+        });
+    </script>
+</body>
+</html>

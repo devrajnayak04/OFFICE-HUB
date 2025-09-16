@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resolved Tickets - IT Dashboard</title>
+    <link rel="stylesheet" href="it-resolved.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <img src="logo.png" alt="Logo" class="logo">
+                <span>IT Support</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="/it-dashboard.html">Live Dashboard</a></li>
+                <!-- ✅ Changed link to .html -->
+                <li class="active"><a href="/it-resolved.html">Resolved Tickets</a></li>
+                <li><a href="/logout">Logout</a></li>
+            </ul>
+        </nav>
+        <main class="main-content">
+            <header class="main-header">
+                <h1>Resolved Ticket Archive</h1>
+            </header>
+            <div id="resolved-tickets-grid" class="resolved-tickets-grid"></div>
+        </main>
+    </div>
+
+    <div id="chat-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeChatModal()">&times;</span>
+            <h2>Chat History for Ticket <span id="chat-ticket-id-display"></span></h2>
+            <div id="chat-history" class="chat-history"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/tickets/Resolved')
+                .then(response => response.json())
+                .then(tickets => {
+                    const grid = document.getElementById('resolved-tickets-grid');
+                    grid.innerHTML = '';
+                    if (tickets.length === 0) {
+                        grid.innerHTML = '<p>No resolved tickets found.</p>';
+                        return;
+                    }
+                    tickets.forEach(ticket => {
+                        const card = document.createElement('div');
+                        card.className = 'ticket-card';
+                        
+                        const requestedDate = new Date(ticket.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+                        const resolvedDate = ticket.resolvedAt ? new Date(ticket.resolvedAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A';
+                        
+                        let resolutionTime = 'N/A';
+                        if (ticket.resolvedAt && ticket.createdAt) {
+                            const timeDiff = new Date(ticket.resolvedAt) - new Date(ticket.createdAt);
+                            const hours = Math.floor(timeDiff / 3600000);
+                            const minutes = Math.floor((timeDiff % 3600000) / 60000);
+                            resolutionTime = `${hours}h ${minutes}m`;
+                        }
+
+                        const stars = ticket.rating ? '★'.repeat(ticket.rating) + '☆'.repeat(5 - ticket.rating) : 'Not Rated';
+                        const resolvedByText = ticket.resolvedBy ? `Resolution Note by ${ticket.resolvedBy}:` : 'Resolution Note:';
+                        const feedbackByText = ticket.employeeName ? `Employee Feedback by ${ticket.employeeName}:` : 'Employee Feedback:';
+
+                        card.innerHTML = `
+                            <div class="ticket-card-header">
+                                <h3>Issue: ${ticket.mainIssue}</h3>
+                                <button class="action-btn chat-btn" onclick="openChatModal('${ticket._id}')">View Chat</button>
+                            </div>
+                            <div class="ticket-card-body">
+                                <div class="detail-row"><span>Employee Name:</span><p>${ticket.employeeName}</p></div>
+                                <div class="detail-row"><span>Employee ID:</span><p>${ticket.employeeId}</p></div>
+                                <div class="detail-row"><span>Department:</span><p>${ticket.department}</p></div>
+                                <div class="detail-row"><span>Location:</span><p>${ticket.floorNumber}, Desk ${ticket.tableNumber}</p></div>
+                                <div class="detail-row"><span>Requested Time:</span><p>${requestedDate}</p></div>
+                                <div class="detail-row"><span>Completed Time:</span><p>${resolvedDate}</p></div>
+                                <div class="detail-row"><span>Time to Resolve:</span><p>${resolutionTime}</p></div>
+                                <div class="resolution-note">
+                                    <h4>${resolvedByText}</h4>
+                                    <p>${ticket.resolutionNote || 'N/A'}</p>
+                                </div>
+                                <div class="resolution-note feedback-note">
+                                    <h4 style="color: #004085;">${feedbackByText}</h4>
+                                    <div class="detail-row" style="border:none; padding: 0;">
+                                        <span>Rating:</span>
+                                        <p class="star-rating-display">${stars}</p>
+                                    </div>
+                                    <p>${ticket.review || 'No review submitted.'}</p>
+                                </div>
+                            </div>
+                        `;
+                        grid.appendChild(card);
+                    });
+                });
+        });
+
+        // Chat Modal Functions
+        const chatModal = document.getElementById('chat-modal');
+        function openChatModal(ticketId) {
+            document.getElementById('chat-ticket-id-display').textContent = `#${ticketId.slice(-6).toUpperCase()}`;
+            
+            fetch(`/api/tickets/details/${ticketId}`).then(res => res.json()).then(ticket => {
+                const chatHistoryDiv = document.getElementById('chat-history');
+                chatHistoryDiv.innerHTML = '';
+                if (ticket.chatHistory.length > 0) {
+                    ticket.chatHistory.forEach(msg => {
+                        const msgDiv = document.createElement('div');
+                        const isSent = msg.senderRole === 'IT'; // ✅ corrected role check
+                        msgDiv.classList.add('chat-message', isSent ? 'sent' : 'received');
+                        msgDiv.innerHTML = `<strong>${msg.senderName}:</strong> ${msg.message}`;
+                        chatHistoryDiv.appendChild(msgDiv);
+                    });
+                } else {
+                    chatHistoryDiv.innerHTML = '<p style="text-align:center; color:#777;">No chat history for this ticket.</p>';
+                }
+            });
+            chatModal.style.display = 'block';
+        }
+        function closeChatModal() { 
+            chatModal.style.display = 'none'; 
+        }
+        window.onclick = function(event) {
+            if (event.target == chatModal) {
+                closeChatModal();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cleaning Dashboard - JC Nexus Hub</title>
+  <link rel="stylesheet" href="cleaning-dashboard.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <!-- Chart.js removed because location-by chart is no longer used -->
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.png" alt="Logo" class="logo">
+        <span>Cleaning Services</span>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="active"><a href="/cleaning-dashboard">Live Requests</a></li>
+        <li><a href="/cleaning-resolved">Completed Archive</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+      <header class="main-header">
+        <h1>Cleaning Operations Dashboard</h1>
+      </header>
+
+      <section class="summary-cards">
+        <div class="summary-card">
+          <i class="fas fa-list-check icon-all"></i>
+          <div class="card-content">
+            <h3 id="total-count">0</h3>
+            <p>Total Requests</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fas fa-hourglass-start icon-pending"></i>
+          <div class="card-content">
+            <h3 id="pending-count">0</h3>
+            <p>Pending</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fas fa-check-circle icon-completed"></i>
+          <div class="card-content">
+            <h3 id="completed-count">0</h3>
+            <p>Completed Today</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- About section only (chart removed) -->
+      <section class="info-container" style="margin-top: 16px;">
+        <h3>About This Dashboard</h3>
+        <p>This is the central hub for the JC Electronica Cleaning department. It provides a real-time overview of all service requests, enabling efficient dispatch and management of cleaning tasks to maintain a pristine work environment.</p>
+        <div class="company-info">
+          <img src="logo.png" alt="Company Logo" class="company-logo">
+          <div>
+            <h4>JC ELETRONICA PVT LIMITED</h4>
+            <p>Epitome of Prowess</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="tickets-table-container">
+        <div class="table-header">
+          <h2 id="table-title">Live Requests</h2>
+          <div class="table-filters">
+            <!-- Use data-status and no inline onclick to avoid nested-quote bugs -->
+            <button class="filter-btn active" data-status="all">All Live</button>
+            <button class="filter-btn" data-status="Pending">Pending</button>
+            <button class="filter-btn" data-status="In Progress">In Progress</button>
+          </div>
+        </div>
+        <table id="requests-table">
+          <thead>
+            <tr>
+              <th>Date & Time</th>
+              <th>Employee Details</th>
+              <th>Department</th>
+              <th>Location</th>
+              <th>Task Type</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="requests-tbody"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <!-- Complete modal -->
+  <div id="closing-note-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeNoteModal()">&times;</span>
+      <h2>Complete Request & Add Note</h2>
+      <form id="closing-note-form">
+        <input type="hidden" id="request-id-note">
+        <textarea id="closing-note-text" rows="5" placeholder="e.g., Area has been cleaned and sanitized." required></textarea>
+        <button type="submit" class="modal-button resolve-button">Mark as Completed</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Chat modal -->
+  <div id="chat-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeChatModal()">&times;</span>
+      <h2>Chat for Request <span id="chat-request-id-display"></span></h2>
+      <div id="chat-history" class="chat-history"></div>
+      <form id="chat-form">
+        <input type="text" id="chat-message-input" placeholder="Type a message..." required autocomplete="off">
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let currentRequestId = null;
+    let currentUserRole = 'Cleaning';
+    let currentFilter = 'all';
+
+    // Load summary data
+    function loadDashboardData() {
+      fetch('/api/cleaning/summary')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('total-count').textContent = data.counts.total;
+          document.getElementById('pending-count').textContent = data.counts.pending;
+          document.getElementById('completed-count').textContent = data.counts.completedToday;
+        });
+    }
+
+    // Load table
+    function fetchRequests(status = 'all') {
+      currentFilter = status;
+
+      // Toggle active button without relying on fragile onclick selector
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.querySelector(`.filter-btn[data-status="${status}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      fetch(`/api/cleaning/list/${status}`)
+        .then(res => res.json())
+        .then(requests => renderTable(requests))
+        .catch(()=> renderTable([]));
+    }
+
+    function renderTable(requests) {
+      const tbody = document.getElementById('requests-tbody');
+      tbody.innerHTML = '';
+      if (!Array.isArray(requests) || requests.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No requests found.</td></tr>`;
+        return;
+      }
+      requests.forEach(req => {
+        const row = document.createElement('tr');
+        const formattedDate = new Date(req.createdAt).toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'});
+        row.innerHTML = `
+          <td>${formattedDate}</td>
+          <td>${req.employeeName||'-'}<br><small>ID: ${req.employeeId||''}</small></td>
+          <td>${req.department||'-'}</td>
+          <td>${req.floorNumber||'-'}, Desk ${req.deskNumber||'-'}</td>
+          <td><strong>${req.cleaningType||'-'}</strong></td>
+          <td>
+            <form class="status-form" onsubmit="updateStatus(event, '${req._id}')">
+              <select name="status">
+                <option value="Pending" ${req.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                <option value="In Progress" ${req.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+              </select>
+              <button type="submit">Update</button>
+            </form>
+          </td>
+          <td>
+            <button class="action-btn chat-btn" onclick="openChatModal('${req._id}')">Chat</button>
+            <button class="action-btn complete-btn" onclick="openNoteModal('${req._id}')">Complete</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function updateStatus(event, requestId) {
+      event.preventDefault();
+      const status = event.target.querySelector('select[name="status"]').value;
+      await fetch('/api/cleaning/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, status })
+      });
+      loadDashboardData();
+      fetchRequests(currentFilter);
+    }
+
+    // Complete
+    const noteModal = document.getElementById('closing-note-modal');
+    function openNoteModal(requestId) { document.getElementById('request-id-note').value = requestId; noteModal.style.display = 'block'; }
+    function closeNoteModal() { noteModal.style.display = 'none'; }
+    document.getElementById('closing-note-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const requestId = document.getElementById('request-id-note').value;
+      const closingNote = document.getElementById('closing-note-text').value;
+      await fetch('/api/cleaning/update-status', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ requestId, status:'Completed', closingNote })
+      });
+      closeNoteModal();
+      loadDashboardData();
+      fetchRequests(currentFilter);
+    });
+
+    // Chat
+    const chatModal = document.getElementById('chat-modal');
+    function openChatModal(requestId) {
+      currentRequestId = requestId;
+      document.getElementById('chat-request-id-display').textContent = `#${requestId.slice(-6).toUpperCase()}`;
+      socket.emit('join-cleaning-room', requestId);
+      fetch(`/api/cleaning/details/${requestId}`).then(res => res.json()).then(request => {
+        const chatHistoryDiv = document.getElementById('chat-history');
+        chatHistoryDiv.innerHTML = '';
+        (request.chatHistory||[]).forEach(msg => appendChatMessage(msg));
+      });
+      chatModal.style.display = 'block';
+    }
+    function closeChatModal() { chatModal.style.display = 'none'; }
+
+    function appendChatMessage(msg) {
+      const chatHistoryDiv = document.getElementById('chat-history');
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('chat-message', msg.senderRole === currentUserRole ? 'sent' : 'received');
+      msgDiv.innerHTML = `<strong>${msg.senderName}:</strong> ${msg.message}`;
+      chatHistoryDiv.appendChild(msgDiv);
+      chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+    }
+
+    document.getElementById('chat-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const input = document.getElementById('chat-message-input');
+      if (input.value && currentRequestId) {
+        socket.emit('send-cleaning-message', { requestId: currentRequestId, message: input.value });
+        input.value = '';
+      }
+    });
+
+    // Wire up filter buttons without inline onclick
+    function initFilters() {
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const status = btn.getAttribute('data-status');
+          fetchRequests(status);
+        });
+      });
+    }
+
+    // Page init and realtime
+    document.addEventListener('DOMContentLoaded', () => {
+      initFilters();
+      loadDashboardData();
+      fetchRequests('all');
+
+      socket.on('new-cleaning', () => { loadDashboardData(); fetchRequests(currentFilter); });
+      socket.on('cleaning-updated', () => { loadDashboardData(); fetchRequests(currentFilter); });
+      socket.on('new-cleaning-message', (data) => {
+        if (currentRequestId && data.requestId === currentRequestId) appendChatMessage(data.chatMessage);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Dashboard - JC Nexus Hub</title>
+
+  <link rel="stylesheet" href="employee-dashboard.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+  <style>
+    /* Chat Modal basic styling */
+    .modal {
+      display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+      width: 100%; height: 100%; overflow: auto;
+      background: rgba(0,0,0,0.5); align-items: center; justify-content: center;
+    }
+    .modal-content {
+      background: #1e1e24; padding: 20px; border-radius: 12px;
+      max-width: 500px; width: 90%; color: #fff;
+      display: flex; flex-direction: column;
+    }
+    .close-button {
+      align-self: flex-end;
+      font-size: 24px; cursor: pointer; color: #bbb;
+    }
+    #chat-history {
+      flex-grow: 1;
+      background: #2a2a2f; padding: 10px; border-radius: 8px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      max-height: 300px;
+    }
+    .chat-message.sent {
+      text-align: right; color: #a2f5a2; margin-bottom: 6px;
+    }
+    .chat-message.received {
+      text-align: left; color: #f5a2a2; margin-bottom: 6px;
+    }
+    .action-btn.chat-btn {
+      margin-right: 6px;
+      padding: 5px 10px;
+      background-color: #3b82f6;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .action-button {
+      margin-right: 10px;
+      background-color: #3b82f6;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.png" alt="Logo" class="logo"/>
+        <span id="welcome-name">Welcome!</span>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="active"><a href="#">My Dashboard</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+      <header class="main-header">
+        <h1>My Service Hub</h1>
+      </header>
+
+      <section class="summary-cards">
+        <div class="summary-card">
+          <i class="fas fa-concierge-bell icon-all"></i>
+          <div class="card-content">
+            <h3 id="total-requests">0</h3>
+            <p>Total Requests</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fas fa-hourglass-start icon-pending"></i>
+          <div class="card-content">
+            <h3 id="pending-requests">0</h3>
+            <p>Pending</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fas fa-check-circle icon-completed"></i>
+          <div class="card-content">
+            <h3 id="completed-requests">0</h3>
+            <p>Completed</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="overview">
+        <div class="overview-header">
+          <h2>Quick Actions</h2>
+          <div>
+            <a href="/order-beverage" class="action-button">Order Beverage</a>
+            <a href="/request-cleaning" class="action-button">Request Cleaning</a>
+            <a href="/order-food" class="action-button">Order Food</a>
+            <a href="/submit-ticket" class="action-button">New IT Ticket</a>
+          </div>
+        </div>
+
+        <div class="requests-table-container">
+          <h3>My Request History</h3>
+          <table id="my-requests-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Service</th>
+                <th>Details</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="my-requests-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Chat Modal -->
+  <div id="chat-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeChatModal()">&times;</span>
+      <h2>Chat with <span id="chat-staff-role"></span></h2>
+      <div id="chat-history" class="chat-history"></div>
+      <form id="chat-form">
+        <input type="text" id="chat-message-input" placeholder="Type a message..." required autocomplete="off"/>
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Rating Modal -->
+  <div id="rating-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeRatingModal()">&times;</span>
+      <h2>Provide Feedback</h2>
+      <p>Your request for "<strong id="rating-request-details"></strong>" has been completed. Please rate the service.</p>
+      <form id="rating-form">
+        <input type="hidden" id="rating-request-id"/>
+        <input type="hidden" id="rating-request-type"/>
+        <div class="star-rating">
+          <span class="star" data-value="1">&#9733;</span>
+          <span class="star" data-value="2">&#9733;</span>
+          <span class="star" data-value="3">&#9733;</span>
+          <span class="star" data-value="4">&#9733;</span>
+          <span class="star" data-value="5">&#9733;</span>
+        </div>
+        <input type="hidden" name="rating" id="rating-value" required/>
+        <textarea name="review" rows="4" placeholder="Add an optional review..."></textarea>
+        <button type="submit" class="modal-button resolve-button">Submit Feedback</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let currentChatRequestId = null;
+    let currentChatType = null;
+    let currentUserRole = 'Employee';
+
+    function loadMyData() {
+      fetch('/api/employee/my-requests')
+        .then(res => res.json())
+        .then(data => renderMyRequests(data));
+    }
+
+    function renderMyRequests(data) {
+      // Added foodOrders for food service type and chat
+      const allRequests = [
+        ...data.tickets.map(t => ({ ...t, type: 'IT Support', details: t.mainIssue, requestType: 'ticket' })),
+        ...data.orders.map(o => ({ ...o, type: 'Beverage', details: o.beverage, requestType: 'beverage' })),
+        ...data.cleaning.map(c => ({ ...c, type: 'Cleaning', details: `Floor ${c.floorNumber}, Desk ${c.deskNumber}`, requestType: 'cleaning' })),
+        ...(data.foodOrders ? data.foodOrders.map(f => ({ ...f, type: 'Food', details: `${f.itemName} (${f.mealType}) x${f.quantity}`, requestType: 'food' })) : [])
+      ];
+
+      allRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      document.getElementById('total-requests').textContent = allRequests.length;
+      document.getElementById('pending-requests').textContent = allRequests.filter(r => r.status !== 'Resolved' && r.status !== 'Completed' && r.status !== 'Delivered').length;
+      document.getElementById('completed-requests').textContent = allRequests.filter(r => r.status === 'Resolved' || r.status === 'Completed' || r.status === 'Delivered').length;
+
+      const tbody = document.getElementById('my-requests-tbody');
+      tbody.innerHTML = '';
+
+      if (allRequests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">You have not made any requests.</td></tr>';
+        return;
+      }
+
+      allRequests.forEach(req => {
+        const row = document.createElement('tr');
+
+        // Chat buttons for each request type that involves staff
+        let actionBtn = '-';
+
+        if (['ticket', 'cleaning', 'beverage', 'food'].includes(req.requestType)) {
+          actionBtn = `<button class="action-btn chat-btn" onclick="openChatModal('${req.requestType}', '${req._id}')">Chat</button>`;
+          if ((req.status === 'Resolved' || req.status === 'Completed' || req.status === 'Delivered') && !req.rating) {
+            actionBtn += `<button class="action-btn resolve-btn" onclick="openRatingModal('${req._id}','${req.details}','${req.requestType}')">Rate</button>`;
+          }
+        }
+
+        const formattedDate = new Date(req.createdAt).toLocaleDateString('en-IN');
+
+        row.innerHTML = `
+          <td>${formattedDate}</td>
+          <td>${req.type}</td>
+          <td>${req.details}</td>
+          <td><span class="status status-${req.status.toLowerCase().replace(' ', '-')}">${req.status}</span></td>
+          <td>${actionBtn}</td>
+        `;
+
+        tbody.appendChild(row);
+      });
+    }
+
+    // Rating modal controls
+    const ratingModal = document.getElementById('rating-modal');
+    function openRatingModal(requestId, details, type) {
+      document.getElementById('rating-request-id').value = requestId;
+      document.getElementById('rating-request-type').value = type;
+      document.getElementById('rating-request-details').textContent = details;
+      ratingModal.style.display = 'flex';
+    }
+    function closeRatingModal() {
+      ratingModal.style.display = 'none';
+    }
+
+    // Chat modal controls
+    const chatModal = document.getElementById('chat-modal');
+    function openChatModal(type, requestId) {
+      currentChatRequestId = requestId;
+      currentChatType = type;
+      let roleName = '';
+
+      switch(type) {
+        case 'ticket':
+          roleName = 'IT Support Staff';
+          break;
+        case 'cleaning':
+          roleName = 'Cleaning Staff';
+          break;
+        case 'beverage':
+          roleName = 'Beverage Staff';
+          break;
+        case 'food':
+          roleName = 'Kitchen Staff';
+          break;
+        default:
+          roleName = 'Support Staff';
+      }
+      document.getElementById('chat-staff-role').textContent = roleName;
+
+      // Join the correct chat room based on request type and ID
+      socket.emit('join-chat-room', { type, requestId });
+
+      fetch(`/api/${type}/details/${requestId}`)
+        .then(res => res.json())
+        .then(data => {
+          const chatHistoryElem = document.getElementById('chat-history');
+          chatHistoryElem.innerHTML = '';
+          (data.chatHistory || []).forEach(msg => appendChatMessage(msg));
+        });
+
+      chatModal.style.display = 'flex';
+    }
+    function closeChatModal() {
+      chatModal.style.display = 'none';
+    }
+
+    function appendChatMessage(msg) {
+      const e = document.getElementById('chat-history');
+      const t = document.createElement('div');
+      t.classList.add('chat-message', msg.senderRole === currentUserRole ? 'sent' : 'received');
+      t.innerHTML = `<strong>${msg.senderName}:</strong> ${msg.message}`;
+      e.appendChild(t);
+      e.scrollTop = e.scrollHeight;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      // Load user info
+      fetch('/api/user-info')
+        .then(res => res.json())
+        .then(user => {
+          const first = user.fullName ? user.fullName.split(' ')[0] : 'User';
+          document.getElementById('welcome-name').textContent = `Welcome, ${first}!`;
+          currentUserRole = user.role;
+        });
+
+      // Load requests
+      loadMyData();
+
+      // Star rating interactions
+      const stars = document.querySelectorAll('.star-rating .star');
+      stars.forEach(star => {
+        star.addEventListener('click', function () {
+          const val = this.dataset.value;
+          document.getElementById('rating-value').value = val;
+          stars.forEach((s, i) => {
+            s.classList.toggle('selected', i < val);
+          });
+        });
+      });
+
+      // Handle rating submit
+      document.getElementById('rating-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const id = document.getElementById('rating-request-id').value;
+        const type = document.getElementById('rating-request-type').value;
+        const rating = document.getElementById('rating-value').value;
+        const review = e.target.querySelector('textarea[name="review"]').value;
+
+        let url = '';
+        let payload = {};
+        if (type === 'ticket') {
+          url = '/api/tickets/submit-rating';
+          payload = { ticketId: id, rating, review };
+        } else if (type === 'cleaning') {
+          url = '/api/cleaning/submit-rating';
+          payload = { requestId: id, rating, review };
+        } else if (type === 'beverage') {
+          url = '/api/beverages/submit-rating';
+          payload = { requestId: id, rating, review };
+        } else if (type === 'food') {
+          url = '/api/food/submit-rating';
+          payload = { requestId: id, rating, review };
+        }
+
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        closeRatingModal();
+        loadMyData();
+      });
+
+      // Chat send
+      document.getElementById('chat-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-message-input');
+        if (input.value) {
+          socket.emit('send-chat-message', { type: currentChatType, requestId: currentChatRequestId, message: input.value });
+          input.value = '';
+        }
+      });
+    });
+
+    // Live refresh hooks
+    socket.on('ticket-resolved-notification', () => loadMyData());
+    socket.on('cleaning-completed-notification', () => loadMyData());
+    socket.on('new-ticket', () => loadMyData());
+    socket.on('new-cleaning', () => loadMyData());
+    socket.on('new-order', () => loadMyData());
+    socket.on('new-food-order', () => loadMyData());
+
+    // Listen for incoming chat messages for any type
+    socket.on('chat-message', (msg) => {
+      if (msg.requestId === currentChatRequestId && msg.type === currentChatType) {
+        appendChatMessage(msg);
+      }
+    });
+  </script>
+</body>
+</html>

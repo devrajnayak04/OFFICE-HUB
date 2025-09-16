@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - JC Nexus Hub</title>
+    <style>
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f3f4f6;
+            flex-direction: column;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+
+        .auth-box {
+            background: #fff;
+            padding: 30px 25px;
+            border-radius: 16px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .logo-container {
+            margin-bottom: 15px;
+        }
+
+        .logo {
+            width: 80px;
+            height: auto;
+        }
+
+        h2 {
+            margin-bottom: 5px;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        p {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #374151;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.9rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #2563eb;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        .submit-button:hover {
+            background: #1d4ed8;
+        }
+
+        .message {
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .redirect-link {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #374151;
+        }
+
+        .redirect-link a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .redirect-link a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="logo-container">
+                <img src="logo.png" alt="JC Nexus Hub Logo" class="logo" />
+            </div>
+            <h2>Create Your Account</h2>
+            <p>Join the internal services platform.</p>
+            <form id="register-form">
+                <div class="input-group">
+                    <label for="fullName">Full Name</label>
+                    <input type="text" id="fullName" name="fullName" required />
+                </div>
+                <div class="input-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required />
+                </div>
+                <div class="input-group">
+                    <label for="employeeId">Employee ID</label>
+                    <input type="text" id="employeeId" name="employeeId" required />
+                </div>
+                <div class="input-group">
+                    <label for="department">Department</label>
+                    <select id="department" name="department" required>
+                        <option value="" disabled selected>Select department</option>
+                        <option>Production</option>
+                        <option>Quality</option>
+                        <option>Maintenance</option>
+                        <option>R&D</option>
+                        <option>Design</option>
+                        <option>Procurement</option>
+                        <option>Logistics</option>
+                        <option>Planning</option>
+                        <option>Inventory</option>
+                        <option>Sales</option>
+                        <option>Marketing</option>
+                        <option>Finance</option>
+                        <option>Accounts</option>
+                        <option>HR</option>
+                        <option>IT</option>
+                        <option>Legal</option>
+                        <option>Admin</option>
+                        <option>Security</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="" disabled selected>Select role</option>
+                        <option>Employee</option>
+                        <option>Admin</option>
+                        <option>IT</option>
+                        <option>Cleaning</option>
+                        <option>Canteen</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required />
+                </div>
+                <button type="submit" class="submit-button">Create Account</button>
+                <p id="message" class="message"></p>
+            </form>
+            <p class="redirect-link">
+                Already have an account? <a href="/">Sign In</a>
+            </p>
+            <p class="footer-note">© JC Eletronica Pvt Ltd | All Rights Reserved</p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('register-form');
+        const messageEl = document.getElementById('message');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            messageEl.textContent = '';
+            const data = Object.fromEntries(new FormData(form).entries());
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    messageEl.textContent = result.message;
+                    messageEl.style.color = '#10B981';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    messageEl.textContent = result.message || 'Registration failed.';
+                    messageEl.style.color = '#EF4444';
+                }
+            } catch (error) {
+                messageEl.textContent = 'A network error occurred.';
+                messageEl.style.color = '#EF4444';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Management - JC Nexus Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#0e0e10;
+      --panel:#16161a;
+      --muted:#8b8b93;
+      --text:#f5f7fb;
+      --accent:#8B0000;
+      --accent-2:#2ecc71;
+      --blue:#3498db;
+      --warning:#f1c40f;
+      --danger:#e74c3c;
+      --border:#232328;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; height:100%; font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text); }
+    .container{ display:flex; min-height:100vh; }
+    .sidebar{
+      width:260px; background:linear-gradient(180deg, #12090b, #0c0c0f);
+      border-right:1px solid var(--border); padding:20px; position:sticky; top:0; height:100vh;
+    }
+    .sidebar-header{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+    .logo{ width:36px; height:36px; object-fit:contain; }
+    .sidebar-header span{ font-weight:700; letter-spacing:.5px; }
+    .sidebar-menu{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+    .sidebar-menu li a{
+      display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none;
+      padding:10px 12px; border-radius:8px; transition:.2s;
+    }
+    .sidebar-menu li.active a, .sidebar-menu li a:hover{ background:rgba(139,0,0,.2); border:1px solid rgba(139,0,0,.35); }
+    .main-content{ flex:1; padding:24px; }
+    .main-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .main-header h1{ margin:0; font-size:24px; }
+    .user-info{ color:var(--muted); }
+    .controls{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:16px 0 10px; }
+    .search-box{ flex:1; display:flex; align-items:center; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px 12px; gap:8px; }
+    .search-box input{ flex:1; background:transparent; border:none; outline:none; color:var(--text); font-size:14px; }
+    .btn{
+      background:#222228; color:var(--text); border:1px solid var(--border); border-radius:10px;
+      padding:10px 14px; cursor:pointer; transition:.2s; display:inline-flex; align-items:center; gap:8px;
+    }
+    .btn:hover{ transform:translateY(-1px); }
+    .btn.primary{ background:var(--accent); border-color:transparent; }
+    .btn.small{ padding:6px 10px; font-size:12px; }
+    .btn.danger{ background:transparent; border:1px solid var(--danger); color:#ffb3ae; }
+    .table-section{ background:var(--panel); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    #usersTable{ width:100%; border-collapse:separate; border-spacing:0; }
+    #usersTable thead th{
+      text-align:left; font-weight:600; padding:12px; font-size:13px; background:#1b1b21; border-bottom:1px solid var(--border);
+    }
+    #usersTable tbody td{ padding:12px; border-bottom:1px solid var(--border); font-size:13px; color:#e9ecf2; }
+    #usersTable tbody tr:hover{ background:#18181d; }
+    .actions{ display:flex; flex-wrap:wrap; gap:6px; }
+    .empty-state{ padding:20px; text-align:center; color:var(--muted); }
+    .details-grid{ display:grid; grid-template-columns:1.2fr 1fr; gap:16px; margin-top:16px; }
+    .panel{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; min-height:320px; }
+    .panel h3{ margin:0 0 12px; font-size:16px; }
+    .spend-summary{ display:grid; grid-template-columns:220px 1fr; gap:12px; align-items:stretch; }
+    .tile{ background:#1b1b21; border:1px solid var(--border); border-radius:12px; padding:16px; }
+    .tile-label{ color:var(--muted); font-size:12px; }
+    .tile-value{ font-size:28px; font-weight:700; margin-top:6px; }
+    .chart-wrap{ position:relative; height:220px; }
+    .tabs{ display:flex; gap:6px; margin-bottom:10px; }
+    .tab{ background:#1b1b21; border:1px solid var(--border); color:#cfd3da; padding:8px 12px; border-radius:10px; cursor:pointer; }
+    .tab.active{ background:rgba(139,0,0,.2); border-color:rgba(139,0,0,.45); color:#fff; }
+    .tab-pane{ display:none; }
+    .tab-pane.active{ display:block; }
+    .tab-pane table{ width:100%; border-collapse:separate; border-spacing:0; }
+    .tab-pane thead th{ text-align:left; font-size:12px; font-weight:600; padding:8px; background:#1b1b21; border-bottom:1px solid var(--border); }
+    .tab-pane tbody td{ padding:8px; border-bottom:1px solid var(--border); font-size:12px; color:#e9ecf2; }
+    .badge{
+      display:inline-block; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:600;
+      background:#22222a; border:1px solid var(--border); color:#dfe4ea;
+    }
+    .role-admin{ background:rgba(139,0,0,.15); border-color:rgba(139,0,0,.45); color:#ffdede; }
+    .role-it{ background:rgba(52,152,219,.15); border-color:rgba(52,152,219,.45); color:#d6eaff; }
+    .role-cleaning{ background:rgba(46,204,113,.15); border-color:rgba(46,204,113,.45); color:#d7ffe8; }
+    .role-canteen{ background:rgba(241,196,15,.15); border-color:rgba(241,196,15,.45); color:#fff5c7; }
+    .status-pending{ background:rgba(241,196,15,.15); border-color:rgba(241,196,15,.45); color:#fff3b0; }
+    .status-in-progress{ background:rgba(52,152,219,.15); border-color:rgba(52,152,219,.45); color:#cfe7ff; }
+    .status-resolved, .status-completed{ background:rgba(46,204,113,.15); border-color:rgba(46,204,113,.45); color:#d7ffe8; }
+    .modal{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:50; }
+    .modal.hidden{ display:none; }
+    .modal-content{ width:95%; max-width:560px; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:0; }
+    .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .modal-header h3{ margin:0; font-size:16px; }
+    .icon-btn{ background:transparent; border:none; color:#cfd3da; cursor:pointer; font-size:18px; }
+    #userForm{ padding:16px; }
+    .form-row{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+    .form-row label{ font-size:12px; color:var(--muted); }
+    .form-row input, .form-row select{
+      background:#1b1b21; border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px 12px; outline:none;
+    }
+    .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:8px; }
+    @media (max-width: 1024px){
+      .details-grid{ grid-template-columns:1fr; }
+      .spend-summary{ grid-template-columns:1fr; }
+      .sidebar{ width:220px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.png" alt="Logo" class="logo">
+        <span>Admin Panel</span>
+      </div>
+      <ul class="sidebar-menu">
+        <li><a href="/admin-dashboard.html"><i class="fa-solid fa-chart-line"></i> Global Dashboard</a></li>
+        <li class="active"><a href="/user-management.html"><i class="fa-solid fa-users-gear"></i> User Management</a></li>
+        <li><a href="/logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+      <header class="main-header">
+        <h1>User Management</h1>
+        <div class="user-info"><span id="admin-name">Loading...</span></div>
+      </header>
+
+      <section class="controls">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="searchInput" type="text" placeholder="Search by name, email, employee ID, or role...">
+        </div>
+        <button id="openCreateModal" class="btn primary"><i class="fa-solid fa-user-plus"></i> New User</button>
+      </section>
+
+      <section class="table-section">
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Employee ID</th>
+              <th>Department</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th style="min-width:200px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTbody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none;">No users found.</div>
+      </section>
+
+      <section class="details-grid">
+        <div class="panel">
+          <h3>User Spend</h3>
+          <div class="spend-summary">
+            <div class="tile">
+              <div class="tile-label">Total Spend</div>
+              <div id="totalSpend" class="tile-value">₹0</div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="spendChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>User History</h3>
+          <div class="tabs">
+            <button class="tab active" data-tab="tickets">IT Tickets</button>
+            <button class="tab" data-tab="cleaning">Cleaning</button>
+            <button class="tab" data-tab="orders">Orders</button>
+          </div>
+          <div class="tab-content">
+            <div id="tab-tickets" class="tab-pane active">
+              <table><thead><tr><th>Date</th><th>Issue</th><th>Status</th></tr></thead><tbody id="ticketsBody"></tbody></table>
+            </div>
+            <div id="tab-cleaning" class="tab-pane">
+              <table><thead><tr><th>Date</th><th>Type</th><th>Status</th></tr></thead><tbody id="cleaningBody"></tbody></table>
+            </div>
+            <div id="tab-orders" class="tab-pane">
+              <table><thead><tr><th>Date</th><th>Item</th><th>Status</th><th>Amount</th></tr></thead><tbody id="ordersBody"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Create/Edit Modal -->
+  <div id="userModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h3 id="modalTitle">Create User</h3>
+        <button class="icon-btn" id="closeModal" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="userForm">
+        <div class="form-row">
+          <label>Full Name</label>
+          <input type="text" name="fullName" required>
+        </div>
+        <div class="form-row">
+          <label>Email</label>
+          <input type="email" name="email" required>
+        </div>
+        <div class="form-row">
+          <label>Employee ID</label>
+          <input type="text" name="employeeId" required>
+        </div>
+        <div class="form-row">
+          <label>Department</label>
+          <input type="text" name="department">
+        </div>
+        <div class="form-row">
+          <label>Role</label>
+          <select name="role" required>
+            <option value="Employee">Employee</option>
+            <option value="Admin">Admin</option>
+            <option value="IT">IT</option>
+            <option value="Cleaning">Cleaning</option>
+            <option value="Canteen">Canteen</option>
+          </select>
+        </div>
+        <div class="form-row" id="passwordRow">
+          <label>Password</label>
+          <input type="password" name="password" placeholder="Set or update password">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" id="cancelModal">Cancel</button>
+          <button type="submit" class="btn primary" id="saveUserBtn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Explicit Socket.IO path for reliability with Express session sharing. [13]
+    const socket = io({ path: '/socket.io' });
+    let spendChart;
+
+    const state = { users: [], filtered: [], selectedUserId: null };
+
+    function currency(val){ return '₹' + Number(val||0).toLocaleString('en-IN'); }
+
+    async function fetchJSON(url, opts){
+      const res = await fetch(url, { headers: { 'Accept':'application/json','Content-Type':'application/json' }, ...opts });
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      return res.json();
+    }
+
+    async function loadMe(){
+      try{
+        const me = await fetchJSON('/api/user-info');
+        document.getElementById('admin-name').textContent = me.fullName || 'Admin';
+      }catch{ document.getElementById('admin-name').textContent = 'Admin'; }
+    }
+
+    async function loadUsers(){
+      try{
+        const users = await fetchJSON('/api/admin/users');
+        state.users = users;
+        state.filtered = users;
+        renderUsers();
+      }catch(e){
+        console.error('Failed to load users', e);
+      }
+    }
+
+    function renderUsers(){
+      const tbody = document.getElementById('usersTbody');
+      tbody.innerHTML = '';
+      const arr = state.filtered;
+      document.getElementById('emptyState').style.display = arr.length ? 'none':'block';
+      arr.forEach(u=>{
+        const tr = document.createElement('tr');
+        const created = u.createdAt ? new Date(u.createdAt).toLocaleString('en-IN') : '-';
+        tr.innerHTML = `
+          <td>${u.fullName||'-'}</td>
+          <td>${u.email||'-'}</td>
+          <td>${u.employeeId||'-'}</td>
+          <td>${u.department||'-'}</td>
+          <td><span class="badge role-${(u.role||'').toLowerCase()}">${u.role||'-'}</span></td>
+          <td>${created}</td>
+          <td class="actions">
+            <button class="btn small" data-action="view" data-id="${u._id}"><i class="fa-solid fa-eye"></i> History</button>
+            <button class="btn small" data-action="spend" data-id="${u._id}"><i class="fa-solid fa-receipt"></i> Spend</button>
+            <button class="btn small" data-action="edit" data-id="${u._id}"><i class="fa-solid fa-pen"></i> Edit</button>
+            <button class="btn small danger" data-action="delete" data-id="${u._id}"><i class="fa-solid fa-trash"></i> Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterUsers(q){
+      const s = (q||'').toLowerCase();
+      state.filtered = state.users.filter(u=>{
+        return [u.fullName,u.email,u.employeeId,u.role,u.department].some(v=> (v||'').toLowerCase().includes(s));
+      });
+      renderUsers();
+    }
+
+    function openModal(mode, user){
+      const modal = document.getElementById('userModal');
+      const title = document.getElementById('modalTitle');
+      const form = document.getElementById('userForm');
+      form.reset();
+      form.dataset.mode = mode;
+      form.dataset.id = user?._id || '';
+      title.textContent = mode==='create' ? 'Create User' : 'Edit User';
+
+      form.fullName.value = user?.fullName || '';
+      form.email.value = user?.email || '';
+      form.employeeId.value = user?.employeeId || '';
+      form.department.value = user?.department || '';
+      form.role.value = user?.role || 'Employee';
+      form.password.value = '';
+
+      document.getElementById('passwordRow').style.display = 'block';
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+    }
+    function closeModal(){
+      const modal = document.getElementById('userModal');
+      modal.classList.add('hidden');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function saveUser(e){
+      e.preventDefault();
+      const form = e.target;
+      const payload = {
+        fullName: form.fullName.value.trim(),
+        email: form.email.value.trim(),
+        employeeId: form.employeeId.value.trim(),
+        department: form.department.value.trim(),
+        role: form.role.value,
+      };
+      if (form.password.value.trim()) payload.password = form.password.value.trim();
+
+      try{
+        if (form.dataset.mode === 'create'){
+          await fetchJSON('/api/admin/users', { method:'POST', body: JSON.stringify(payload) });
+        } else {
+          const id = form.dataset.id;
+          await fetchJSON('/api/admin/users/'+id, { method:'PUT', body: JSON.stringify(payload) });
+        }
+        closeModal();
+        await loadUsers();
+      }catch(err){
+        alert('Failed to save user. Please check data and try again.');
+        console.error(err);
+      }
+    }
+
+    async function deleteUser(id){
+      if (!confirm('Delete this user? This action cannot be undone.')) return;
+      try{
+        await fetchJSON('/api/admin/users/'+id, { method:'DELETE' });
+        await loadUsers();
+      }catch(err){
+        alert('Failed to delete user.');
+      }
+    }
+
+    async function loadHistory(id){
+      state.selectedUserId = id;
+      try{
+        const data = await fetchJSON('/api/admin/users/'+id+'/history');
+        const ticketsBody = document.getElementById('ticketsBody');
+        const cleaningBody = document.getElementById('cleaningBody');
+        const ordersBody = document.getElementById('ordersBody');
+        ticketsBody.innerHTML = '';
+        cleaningBody.innerHTML = '';
+        ordersBody.innerHTML = '';
+
+        data.tickets.forEach(t=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${new Date(t.createdAt).toLocaleString('en-IN')}</td><td>${t.mainIssue||'-'}</td><td><span class="badge status-${(t.status||'').toLowerCase().replace(/\s+/g,'-')}">${t.status}</span></td>`;
+          ticketsBody.appendChild(tr);
+        });
+        data.cleaning.forEach(c=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${new Date(c.createdAt).toLocaleString('en-IN')}</td><td>${c.cleaningType||'-'}</td><td><span class="badge status-${(c.status||'').toLowerCase().replace(/\s+/g,'-')}">${c.status}</span></td>`;
+          cleaningBody.appendChild(tr);
+        });
+        data.orders.forEach(o=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${new Date(o.createdAt).toLocaleString('en-IN')}</td><td>${o.beverage||'-'}</td><td><span class="badge status-${(o.status||'').toLowerCase()}">${o.status}</span></td><td>${currency(o.amount)}</td>`;
+          ordersBody.appendChild(tr);
+        });
+      }catch(e){
+        console.error(e);
+      }
+    }
+
+    async function loadSpend(id){
+      state.selectedUserId = id;
+      try{
+        const data = await fetchJSON('/api/admin/users/'+id+'/spend');
+        document.getElementById('totalSpend').textContent = currency(data.total||0);
+        const labels = (data.breakdown||[]).map(b=> b._id || 'Unknown');
+        const vals = (data.breakdown||[]).map(b=> b.total || 0);
+        const ctx = document.getElementById('spendChart').getContext('2d');
+        if (spendChart) spendChart.destroy();
+        spendChart = new Chart(ctx, {
+          type:'bar',
+          data:{ labels, datasets:[{ label:'Spend (₹)', data:vals, backgroundColor:'#8B0000' }] },
+          options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top' } }, scales:{ y:{ beginAtZero:true } } }
+        });
+      }catch(e){
+        console.error(e);
+      }
+    }
+
+    function setupTabs(){
+      document.querySelectorAll('.tab').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+          document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      await loadMe();
+      await loadUsers();
+      setupTabs();
+
+      document.getElementById('searchInput').addEventListener('input', (e)=> filterUsers(e.target.value));
+      document.getElementById('openCreateModal').addEventListener('click', ()=> openModal('create'));
+      document.getElementById('closeModal').addEventListener('click', closeModal);
+      document.getElementById('cancelModal').addEventListener('click', closeModal);
+      document.getElementById('userForm').addEventListener('submit', saveUser);
+
+      document.getElementById('usersTbody').addEventListener('click', async (e)=>{
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        if (action==='edit'){
+          const u = state.users.find(x=> x._id===id);
+          openModal('edit', u);
+        } else if (action==='delete'){
+          await deleteUser(id);
+        } else if (action==='view'){
+          await loadHistory(id);
+        } else if (action==='spend'){
+          await loadSpend(id);
+        }
+      });
+
+      // Keep data fresh
+      socket.on('admin-user-removed', loadUsers);
+      socket.on('new-order', ()=> state.selectedUserId && loadSpend(state.selectedUserId));
+      socket.on('order-updated', ()=> state.selectedUserId && loadSpend(state.selectedUserId));
+    });
+  </script>
+</body>
+</html>

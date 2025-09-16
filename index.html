@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - JC Nexus Hub</title>
+  <style>
+    /* Reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f9fafb, #eef2f7);
+    }
+
+    .auth-container { width: 100%; max-width: 480px; padding: 20px; }
+
+    .auth-box {
+      background: #fff;
+      padding: 40px 35px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .auth-box:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15); }
+
+    .logo-container { margin-bottom: 20px; }
+    .logo { width: 100px; height: auto; }
+
+    h2 { margin-bottom: 10px; font-size: 1.8rem; font-weight: 700; color: #111827; }
+    p.subtitle { font-size: 1rem; color: #6b7280; margin-bottom: 25px; }
+
+    .input-group { text-align: left; margin-bottom: 18px; }
+    label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; color: #374151; }
+
+    input {
+      width: 100%; padding: 12px; font-size: 1rem;
+      border: 1px solid #d1d5db; border-radius: 10px; outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+
+    .submit-button {
+      width: 100%; padding: 14px; background: #2563eb; color: white;
+      font-size: 1.1rem; font-weight: 600; border: none; border-radius: 10px;
+      cursor: pointer; margin-top: 12px; transition: background 0.2s;
+    }
+
+    .submit-button:hover { background: #1d4ed8; }
+
+    .message { margin-top: 12px; font-size: 0.95rem; }
+
+    .redirect-link { margin-top: 18px; font-size: 0.9rem; color: #374151; }
+    .redirect-link a { color: #2563eb; text-decoration: none; font-weight: 600; }
+    .redirect-link a:hover { text-decoration: underline; }
+
+    .footer-note { margin-top: 25px; font-size: 0.8rem; color: #6b7280; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-box">
+      <div class="logo-container">
+        <img src="logo.png" alt="JC Nexus Hub Logo" class="logo" />
+      </div>
+      <h2>Sign In</h2>
+      <p class="subtitle">WELCOME BACK TO JC NEXUS HUB</p>
+
+      <form id="login-form">
+        <div class="input-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+        <button type="submit" class="submit-button">Sign In</button>
+        <p id="message" class="message"></p>
+      </form>
+
+      <p class="redirect-link">
+        Don’t have an account? <a href="/register">Create one</a>
+      </p>
+      <p class="footer-note">© JC Eletronica Pvt Ltd | All Rights Reserved</p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const messageEl = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      messageEl.textContent = '';
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          messageEl.textContent = "Login successful! Redirecting...";
+          messageEl.style.color = '#10B981';
+          setTimeout(() => {
+            window.location.href = result.redirect;
+          }, 1200);
+        } else {
+          messageEl.textContent = result.message || 'Invalid credentials.';
+          messageEl.style.color = '#EF4444';
+        }
+      } catch (error) {
+        messageEl.textContent = 'A network error occurred.';
+        messageEl.style.color = '#EF4444';
+      }
+    });
+  </script>
+</body>
+</html>

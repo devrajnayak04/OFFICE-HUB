@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IT Dashboard - JC Nexus Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="it-dashboard.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.png" alt="Logo" class="logo">
+        <span>IT Support</span>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="active"><a href="/it-dashboard">Live Dashboard</a></li>
+        <li><a href="/it-resolved">Resolved Archive</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+      <header class="main-header">
+        <h1>IT Mission Control</h1>
+      </header>
+
+      <section class="summary-cards">
+        <div class="summary-card">
+          <i class="fas fa-ticket-alt icon-all"></i>
+          <div class="card-content">
+            <h3 id="total-tickets-count">0</h3>
+            <p>Total Tickets</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fas fa-hourglass-start icon-pending"></i>
+          <div class="card-content">
+            <h3 id="pending-tickets-count">0</h3>
+            <p>Pending</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fas fa-spinner icon-progress"></i>
+          <div class="card-content">
+            <h3 id="in-progress-tickets-count">0</h3>
+            <p>In Progress</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fas fa-check-circle icon-resolved"></i>
+          <div class="card-content">
+            <h3 id="resolved-tickets-count">0</h3>
+            <p>Resolved Today</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Removed the Tickets by Department section as requested -->
+
+      <section class="dashboard-grid bottom-grid">
+        <div class="info-container">
+          <h3>About This Page</h3>
+          <p>This "IT Mission Control" dashboard provides a comprehensive real-time overview of all IT support tickets. It enables our IT team to efficiently track, manage, and resolve technical issues across all departments, ensuring smooth operations and minimal downtime for JC Electronica.</p>
+          <div class="company-info">
+            <img src="logo.png" alt="Company Logo" class="company-logo">
+            <div>
+              <h4>JC ELETRONICA PVT LIMITED</h4>
+              <p>Epitome of Prowess</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tickets-table-container live-tickets-section">
+          <div class="table-header">
+            <h2 id="table-title">Live Tickets</h2>
+            <div class="table-filters">
+              - <button class="filter-btn active" onclick="fetchTickets('all')">All Live</button>
+              <button class="filter-btn" onclick="fetchTickets('Pending')">Pending</button>
+              <button class="filter-btn" onclick="fetchTickets('In Progress')">In Progress</button>
+            </div>
+          </div>
+          <table id="tickets-table">
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>Employee Details</th>
+                <th>Location</th>
+                <th>Issue</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tickets-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="resolve-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeResolveModal()">&times;</span>
+      <h2>Resolve Ticket & Add Note</h2>
+      <p>A closing note is mandatory to resolve this ticket.</p>
+      <form id="resolve-form">
+        <input type="hidden" id="resolve-ticket-id">
+        <textarea id="resolution-note" rows="5" placeholder="e.g., Replaced faulty keyboard and tested." required></textarea>
+        <button type="submit" class="modal-button resolve-button">Mark as Resolved</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="chat-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" onclick="closeChatModal()">&times;</span>
+      <h2>Chat for Ticket <span id="chat-ticket-id-display"></span></h2>
+      <div id="chat-history" class="chat-history"></div>
+      <form id="chat-form">
+        <input type="text" id="chat-message-input" placeholder="Type a message..." required autocomplete="off">
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Default path /socket.io/ is fine if unchanged on server; align if customized. [8][6]
+    const socket = io();
+    let currentTicketId = null;
+    let currentFilter = 'all';
+
+    function fetchDashboardSummary() {
+      fetch('/api/it/summary')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('total-tickets-count').textContent = data.counts.total ?? 0;
+          document.getElementById('pending-tickets-count').textContent = data.counts.pending ?? 0;
+          document.getElementById('in-progress-tickets-count').textContent = data.counts.inProgress ?? 0;
+          document.getElementById('resolved-tickets-count').textContent = data.counts.resolvedToday ?? 0;
+          // No department chart rendering here
+        })
+        .catch(()=>{});
+    }
+
+    function fetchTickets(status = 'all') {
+      currentFilter = status;
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`.filter-btn[onclick="fetchTickets('${status}')"]`)?.classList.add('active');
+      const title = status === 'all' ? 'Live' : status;
+      document.getElementById('table-title').textContent = `${title} Tickets`;
+      fetch(`/api/tickets/${status}`).then(res => res.json()).then(tickets => renderTable(tickets));
+    }
+
+    function renderTable(tickets) {
+      const tbody = document.getElementById('tickets-tbody');
+      tbody.innerHTML = '';
+      if (!Array.isArray(tickets) || tickets.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No tickets found.</td></tr>`;
+        return;
+      }
+      tickets.forEach(ticket => {
+        const row = document.createElement('tr');
+        const formattedDate = new Date(ticket.createdAt).toLocaleString('en-IN');
+        const statusControl = `
+          <form class="status-form" onsubmit="updateStatus(event, '${ticket._id}')">
+            <select name="status">
+              <option value="Pending" ${ticket.status === 'Pending' ? 'selected' : ''}>Pending</option>
+              <option value="In Progress" ${ticket.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+            </select>
+            <button type="submit">Update</button>
+          </form>`;
+        row.innerHTML = `
+          <td>${formattedDate}</td>
+          <td>${ticket.employeeName}<br><small>ID: ${ticket.employeeId} | ${ticket.department||'-'}</small></td>
+          <td>${ticket.floorNumber||'-'}<br><small>Desk: ${ticket.tableNumber||'-'}</small></td>
+          <td><strong>${ticket.mainIssue||'-'}</strong><br><small>${ticket.problemDescription||''}</small></td>
+          <td>${statusControl}</td>
+          <td>
+            <button class="action-btn chat-btn" onclick="openChatModal('${ticket._id}')">Chat</button>
+            <button class="action-btn resolve-btn" onclick="openResolveModal('${ticket._id}')">Resolve</button>
+          </td>`;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function updateStatus(event, ticketId) {
+      event.preventDefault();
+      const status = event.target.querySelector('select[name="status"]').value;
+      await fetch('/api/tickets/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketId, status })
+      });
+    }
+
+    const resolveModal = document.getElementById('resolve-modal');
+    function openResolveModal(ticketId) {
+      document.getElementById('resolve-ticket-id').value = ticketId;
+      resolveModal.style.display = 'flex';
+    }
+    function closeResolveModal() { resolveModal.style.display = 'none'; }
+
+    const chatModal = document.getElementById('chat-modal');
+    function openChatModal(ticketId) {
+      currentTicketId = ticketId;
+      document.getElementById('chat-ticket-id-display').textContent = `#${ticketId.slice(-6).toUpperCase()}`;
+      socket.emit('join-ticket-room', ticketId);
+      fetch(`/api/tickets/details/${ticketId}`).then(res => res.json()).then(ticket => {
+        const chatHistoryDiv = document.getElementById('chat-history');
+        chatHistoryDiv.innerHTML = '';
+        (ticket.chatHistory||[]).forEach(msg => appendChatMessage(msg));
+      });
+      chatModal.style.display = 'flex';
+    }
+    function closeChatModal() { chatModal.style.display = 'none'; }
+    function appendChatMessage(msg) {
+      const chatHistoryDiv = document.getElementById('chat-history');
+      const msgDiv = document.createElement('div');
+      const isSent = (msg.senderRole||'').toLowerCase().includes('it');
+      msgDiv.classList.add('chat-message', isSent ? 'sent' : 'received');
+      msgDiv.innerHTML = `<strong>${msg.senderName||'User'}:</strong> ${msg.message||''}`;
+      chatHistoryDiv.appendChild(msgDiv);
+      chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchDashboardSummary();
+      fetchTickets();
+
+      socket.on('new-ticket', () => { fetchDashboardSummary(); fetchTickets(currentFilter); });
+      socket.on('ticket-updated', () => { fetchDashboardSummary(); fetchTickets(currentFilter); });
+      socket.on('new-chat-message', (data) => {
+        if (currentTicketId && data.ticketId === currentTicketId) appendChatMessage(data.chatMessage);
+      });
+
+      document.getElementById('resolve-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const ticketId = document.getElementById('resolve-ticket-id').value;
+        const resolutionNote = document.getElementById('resolution-note').value;
+        await fetch('/api/tickets/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticketId, resolutionNote })
+        });
+        closeResolveModal();
+      });
+
+      document.getElementById('chat-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const input = document.getElementById('chat-message-input');
+        if (input.value) { socket.emit('send-chat-message', { ticketId: currentTicketId, message: input.value }); input.value = ''; }
+      });
+    });
+  </script>
+</body>
+</html>

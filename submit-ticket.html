@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Submit IT Ticket - JC Nexus Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#0e1424; --muted:#9fb1c9; --text:#e9f0fb; --border:#24314a;
+      --accent:#3b82f6; --accent-2:#2563eb; --ok:#10b981; --warn:#f59e0b;
+      --ring: rgba(59,130,246,.28);
+      --shadow: 0 10px 35px rgba(3,10,24,.55);
+      --blur: saturate(140%) blur(6px);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--text);
+      background:
+        radial-gradient(1200px 800px at -10% -20%, #19335b 0%, rgba(15,23,42,0) 55%) fixed,
+        radial-gradient(900px 700px at 120% 10%, #1c2b55 0%, rgba(15,23,42,0) 45%) fixed,
+        var(--bg);
+      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 14px;
+    }
+
+    .shell{width:100%; max-width:1120px}
+    .top{display:flex; align-items:center; justify-content:space-between; margin:0 0 14px 4px; color:#cfe0ff; font-size:13px}
+    .brand{display:flex; align-items:center; gap:10px}
+    .brand img{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:#0b1220;padding:4px}
+
+    .grid{display:grid; gap:18px; grid-template-columns:1.05fr 1fr}
+    @media (max-width:980px){ .grid{ grid-template-columns:1fr } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(21,33,61,.86), rgba(12,20,39,.82));
+      border:1px solid var(--border); border-radius:18px; padding:22px; box-shadow:var(--shadow);
+      backdrop-filter: var(--blur);
+    }
+
+    .logo{ width:54px; height:54px; object-fit:contain; border-radius:12px; border:1px solid var(--border); background:#0b1220; padding:6px }
+    h1{ margin:12px 0 6px; font-size:26px }
+    p.lead{ color:var(--muted); line-height:1.65; margin:0 0 14px }
+
+    .info-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+    @media (max-width:640px){ .info-row{ grid-template-columns:1fr } }
+    .info-box{
+      display:flex; gap:12px; align-items:flex-start;
+      background:linear-gradient(180deg, rgba(59,130,246,.08), rgba(59,130,246,.03));
+      border:1px solid #1f3b79; border-radius:14px; padding:12px 14px;
+    }
+    .info-box i{ color:#93c5fd; font-size:18px; margin-top:2px }
+    .info-box h3{ margin:0 0 4px; font-size:15px }
+    .info-box p{ margin:0; color:#b8c7df }
+
+    .form-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .form-header h2{margin:0;font-size:18px}
+    .badge{font-size:11px;padding:5px 9px;border-radius:999px;background:#0f1b36;border:1px solid #1d3771;color:#cfe0ff}
+
+    .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+    @media (max-width:640px){ .row-2{ grid-template-columns:1fr } }
+    .input-group{ margin-bottom:12px }
+    label{ display:block; margin:0 0 6px; color:#cfe0ff; font-size:12px; letter-spacing:.2px }
+
+    input, select, textarea{
+      width:100%; background:#0f1526; color:var(--text); border:1px solid var(--border);
+      border-radius:12px; padding:12px; font-size:14px; outline:none; transition:border .18s, box-shadow .18s, transform .06s;
+    }
+    textarea{ min-height:110px; resize:vertical }
+    input:focus, select:focus, textarea:focus{ border-color:#34528f; box-shadow:0 0 0 3px var(--ring) }
+
+    .actions{ display:flex; gap:10px; align-items:center; margin-top:6px }
+    .btn{
+      position:relative; overflow:hidden; border:none; cursor:pointer; color:#eaf2ff;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      padding:12px 14px; border-radius:12px; font-weight:600; letter-spacing:.2px;
+      transition: transform .06s ease, filter .18s ease;
+    }
+    .btn:hover{ filter:brightness(1.03) saturate(1.05) }
+    .btn:active{ transform: translateY(1px) }
+    .btn::before{
+      content:""; position:absolute; inset:0; background: radial-gradient(120% 120% at -10% -10%, rgba(255,255,255,.25), transparent 40%);
+      opacity:.0; transition:opacity .25s ease;
+    }
+    .btn:hover::before{ opacity:.8 }
+
+    .link{ color:#9fd1ff; text-decoration:none; font-size:13px }
+    .link:hover{ text-decoration:underline }
+
+    .footer{ text-align:center; color:#a9b9d3; font-size:12px; margin-top:16px; opacity:.9 }
+
+    .toast{
+      position:fixed; right:18px; bottom:18px; background:#0f1626; color:#e5f2ff; border:1px solid #20406e;
+      padding:10px 12px; border-radius:12px; box-shadow:var(--shadow); display:none; z-index:30
+    }
+    .toast.ok{ border-color:#065f46; color:#d1fae5; background:#0b1f1a }
+    .toast.warn{ border-color:#7c2d12; color:#ffedd5; background:#1b130c }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top">
+      <div class="brand">
+        <img src="logo.png" alt="JC"/>
+        <div>JC Nexus Hub • IT Support</div>
+      </div>
+      <div id="now"></div>
+    </div>
+
+    <div class="grid">
+      <!-- Info column -->
+      <div class="card">
+        <img src="logo.png" alt="JC Electronica Logo" class="logo"/>
+        <h1>IT Support Center</h1>
+        <p class="lead">Please provide as much detail as possible to help the team resolve the issue quickly.</p>
+
+        <div class="info-row">
+          <div class="info-box">
+            <i class="fas fa-rocket"></i>
+            <div>
+              <h3>Fast Response</h3>
+              <p>The team is notified instantly upon ticket submission.</p>
+            </div>
+          </div>
+          <div class="info-box">
+            <i class="fas fa-history"></i>
+            <div>
+              <h3>Track Your Ticket</h3>
+              <p>Monitor status anytime from the dashboard.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form column -->
+      <div class="card">
+        <div class="form-header">
+          <h2>New Support Ticket</h2>
+          <span class="badge">Live queue</span>
+        </div>
+
+        <form id="ticket-form" action="/api/tickets" method="POST" novalidate>
+          <div class="row-2">
+            <div class="input-group">
+              <label for="floorNumber">Floor Number</label>
+              <input type="text" id="floorNumber" name="floorNumber" placeholder="e.g., 4th Floor" required/>
+            </div>
+            <div class="input-group">
+              <label for="tableNumber">Table / Desk Number</label>
+              <input type="text" id="tableNumber" name="tableNumber" placeholder="e.g., 14B" required/>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="mainIssue">Main Issue Category</label>
+            <select id="mainIssue" name="mainIssue" required>
+              <option value="" disabled selected>Select the primary issue</option>
+              <option>Hardware Malfunctions</option>
+              <option>Connectivity Issues</option>
+              <option>Security Risks</option>
+              <option>Poor User Practices</option>
+              <option>Asset Management</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div class="input-group" id="other-reason-group" style="display:none">
+            <label for="otherReason">Please Specify Other Reason</label>
+            <input type="text" id="otherReason" name="otherReason" placeholder="Specify the issue"/>
+          </div>
+
+          <div class="input-group">
+            <label for="problemDescription">Describe the Issue in Detail</label>
+            <textarea id="problemDescription" name="problemDescription" placeholder="e.g., Keyboard not responding..." required></textarea>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn">Submit Ticket</button>
+            <a class="link" href="/employee-dashboard">Back to Dashboard</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="footer">© JC Eletronica Pvt Ltd | All Rights Reserved</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    document.getElementById('now').textContent =
+      new Date().toLocaleString('en-IN', { dateStyle:'medium', timeStyle:'short' });
+
+    const form = document.getElementById('ticket-form');
+    const toast = document.getElementById('toast');
+    const mainIssue = document.getElementById('mainIssue');
+    const otherGroup = document.getElementById('other-reason-group');
+    const otherReason = document.getElementById('otherReason');
+
+    // Show/hide “Other reason”
+    mainIssue.addEventListener('change', () => {
+      const isOther = mainIssue.value === 'Other';
+      otherGroup.style.display = isOther ? 'block' : 'none';
+      otherReason.required = isOther;
+      if (!isOther) otherReason.value = '';
+    });
+
+    // Submit with fetch for better UX; still uses same endpoint
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      if (!data.floorNumber || !data.tableNumber || !data.mainIssue || !data.problemDescription) {
+        return showToast('Please fill all required fields.', 'warn');
+      }
+      try{
+        const res = await fetch(form.action, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(data)
+        });
+        if(!res.ok) throw new Error('Request failed');
+        showToast('Ticket submitted successfully.', 'ok');
+        setTimeout(()=> window.location.href='/employee-dashboard', 800);
+      }catch{
+        showToast('Unable to submit. Try again.', 'warn');
+      }
+    });
+
+    function showToast(msg, type){
+      toast.textContent = msg;
+      toast.className = 'toast ' + (type || '');
+      toast.style.display = 'block';
+      setTimeout(()=> toast.style.display = 'none', 2200);
+    }
+  </script>
+</body>
+</html>

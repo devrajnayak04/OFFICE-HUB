@@ -1,0 +1,183 @@
+<!-- canteen-dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Canteen Dashboard - JC Nexus Hub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{ --bg:#0e0e10; --panel:#16161a; --muted:#8b8b93; --text:#f5f7fb; --accent:#8B0000; --border:#232328; --success:#2ecc71; --warn:#f1c40f; }
+    *{ box-sizing:border-box; } html,body{ margin:0; padding:0; height:100%; font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text); }
+    .container{ display:flex; min-height:100vh; }
+    .sidebar{ width:260px; background:linear-gradient(180deg, #12090b, #0c0c0f); border-right:1px solid var(--border); padding:20px; position:sticky; top:0; height:100vh; }
+    .sidebar-header{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+    .logo{ width:36px; height:36px; object-fit:contain; }
+    .sidebar-header span{ font-weight:700; letter-spacing:.5px; }
+    .sidebar-menu{ list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+    .sidebar-menu li a{ display:flex; align-items:center; gap:10px; color:var(--text); text-decoration:none; padding:10px 12px; border-radius:8px; transition:.2s; }
+    .sidebar-menu li.active a, .sidebar-menu li a:hover{ background:rgba(139,0,0,.2); border:1px solid rgba(139,0,0,.35); }
+    .main-content{ flex:1; padding:24px; }
+    .main-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .main-header h1{ margin:0; font-size:24px; }
+    .summary-cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0 10px; }
+    .summary-card{ display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px; }
+    .card-content h3{ margin:0; font-size:22px; } .card-content p{ margin:0; color:var(--muted); font-size:12px; }
+    .dashboard-grid{ display:grid; gap:16px; grid-template-columns:1fr 1fr; }
+    .panel{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px; }
+    .table-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .table-filters{ display:flex; gap:6px; }
+    .filter-btn{ background:#1b1b21; border:1px solid var(--border); color:#cfd3da; padding:8px 12px; border-radius:10px; cursor:pointer; }
+    .filter-btn.active{ background:rgba(139,0,0,.2); border-color:rgba(139,0,0,.45); color:#fff; }
+    table{ width:100%; border-collapse:separate; border-spacing:0; }
+    thead th{ text-align:left; font-weight:600; padding:10px; font-size:13px; background:#1b1b21; border-bottom:1px solid var(--border); }
+    tbody td{ padding:10px; border-bottom:1px solid var(--border); font-size:13px; color:#e9ecf2; vertical-align:top; }
+    tbody tr:hover{ background:#18181d; }
+    .btn{ background:#222228; color:#fff; border:1px solid var(--border); border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; }
+    .btn.primary{ background:var(--accent); border-color:transparent; }
+    .btn.success{ background:var(--success); border-color:transparent; }
+    .info{ color:var(--muted); font-size:13px; }
+    @media (max-width: 1024px){ .dashboard-grid{ grid-template-columns:1fr; } .sidebar{ width:220px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <img src="logo.png" alt="Logo" class="logo">
+        <span>Canteen</span>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="active"><a href="/canteen-dashboard">Live Dashboard</a></li>
+        <li><a href="/preorder-food">Pre-Order Food</a></li>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+      <header class="main-header">
+        <h1>Canteen Mission Control</h1>
+      </header>
+
+      <section class="summary-cards">
+        <div class="summary-card">
+          <i class="fa-solid fa-mug-hot" style="color:#ffe0b2;"></i>
+          <div class="card-content">
+            <h3 id="total-orders">0</h3>
+            <p>Total Orders</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fa-solid fa-hourglass-start" style="color:#f1c40f;"></i>
+          <div class="card-content">
+            <h3 id="pending-orders">0</h3>
+            <p>Pending</p>
+          </div>
+        </div>
+        <div class="summary-card">
+          <i class="fa-solid fa-check-circle" style="color:#2ecc71;"></i>
+          <div class="card-content">
+            <h3 id="completed-today">0</h3>
+            <p>Completed Today</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard-grid">
+        <div class="panel">
+          <div class="table-header">
+            <h3>Live Beverage Orders</h3>
+            <div class="table-filters">
+              <button class="filter-btn active" onclick="loadOrders('all')">All</button>
+              <button class="filter-btn" onclick="loadOrders('Pending')">Pending</button>
+              <button class="filter-btn" onclick="loadOrders('Completed')">Completed</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Time</th><th>Employee</th><th>Beverage</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="orders-tbody"></tbody>
+          </table>
+          <p class="info">Tip: Click Complete to mark an order served instantly; the employee sees it update in real-time.</p>
+        </div>
+
+        <div class="panel">
+          <h3>Beverage Menu (Quick Reference)</h3>
+          <p class="info">Coffee, Black Coffee, Masala Tea, Green Tea, Hot Chocolate, Coca-Cola, Diet Coke, Sprite, Limca, Lemon Water, Iced Tea, Cold Coffee, Lassi, Orange Juice, Smoothie, Chocolate Milkshake, Red Bull, Gatorade, Sting, ORS Drink.</p>
+          <canvas id="bevChart" style="height:260px"></canvas>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io(); // default path works unless customized on server [11]
+    let bevChart;
+
+    function formatTime(ts){ return new Date(ts).toLocaleString('en-IN'); }
+
+    async function fetchJSON(url, opts){
+      const res = await fetch(url, { headers: { 'Accept':'application/json','Content-Type':'application/json' }, ...opts });
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      return res.json();
+    }
+
+    async function loadSummary(){
+      const data = await fetchJSON('/api/canteen/summary');
+      document.getElementById('total-orders').textContent = data.counts.total ?? 0;
+      document.getElementById('pending-orders').textContent = data.counts.pending ?? 0;
+      document.getElementById('completed-today').textContent = data.counts.completedToday ?? 0;
+    }
+
+    async function loadOrders(status='all'){
+      document.querySelectorAll('.filter-btn').forEach(b=> b.classList.remove('active'));
+      document.querySelector(`.filter-btn[onclick="loadOrders('${status}')"]`)?.classList.add('active');
+      const rows = await fetchJSON('/api/canteen/orders/'+status);
+      const tbody = document.getElementById('orders-tbody');
+      tbody.innerHTML = '';
+      if (!rows.length){
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No orders.</td></tr>';
+        return;
+      }
+      rows.forEach(o=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${formatTime(o.createdAt)}</td>
+          <td>${o.employeeName||'-'}<br><small>ID: ${o.employeeId}</small></td>
+          <td>${o.beverage||'-'}</td>
+          <td>${o.status}</td>
+          <td>${o.status==='Pending' ? `<button class="btn success" onclick="completeOrder('${o._id}')">Complete</button>` : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function completeOrder(orderId){
+      await fetchJSON('/api/canteen/orders/update-status', { method:'POST', body: JSON.stringify({ orderId, status:'Completed' }) });
+    }
+
+    function renderBevChart(){
+      const ctx = document.getElementById('bevChart').getContext('2d');
+      if (bevChart) bevChart.destroy();
+      bevChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Hot','Cold','Energy'],
+          datasets: [{ data:[10,7,3], backgroundColor:['#8B0000','#3498db','#2ecc71'] }]
+        },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      loadSummary(); loadOrders(); renderBevChart();
+      socket.on('new-order', ()=>{ loadSummary(); loadOrders('all'); });
+      socket.on('canteen-updated', ()=>{ loadSummary(); loadOrders('all'); });
+      // Also reflect generic order-updated events used elsewhere
+      socket.on('order-updated', ()=>{ loadSummary(); loadOrders('all'); });
+    });
+  </script>
+</body>
+</html>

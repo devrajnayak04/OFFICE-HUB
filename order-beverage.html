@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Beverage Order - JC Nexus Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+
+  <style>
+    :root{
+      --bg:#0e172a; 
+      --panel:#111827; 
+      --muted:#a3b3cc; 
+      --text:#e5e9f5; 
+      --border:#1f2937;
+      --accent:#8B0000; 
+      --accent-2:#a30b0b; 
+      --success:#10b981; 
+      --warn:#f59e0b;
+      --ring: rgba(139,0,0,.35);
+      --shadow: 0 12px 38px rgba(0,0,0,.55);
+      --blur: saturate(140%) blur(8px);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Poppins,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1000px 600px at -15% -25%, #3a0d0d 0%, rgba(15,23,42,0) 55%) fixed,
+        radial-gradient(800px 700px at 115% 5%, #4a1010 0%, rgba(15,23,42,0) 45%) fixed,
+        var(--bg);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px 14px;
+    }
+
+    .container{width:100%; max-width:1120px}
+    .top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin:0 0 14px 4px;
+      color:#f0dada;
+      font-size:13px
+    }
+    .brand{display:flex; align-items:center; gap:10px}
+    .brand img{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:#1b1b21;padding:4px}
+
+    .grid{display:grid; gap:18px; grid-template-columns:1.05fr 1fr}
+    @media (max-width:980px){ .grid{ grid-template-columns:1fr } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(40,20,20,.86), rgba(15,15,15,.82));
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:22px;
+      box-shadow:var(--shadow);
+      backdrop-filter: var(--blur);
+    }
+
+    .logo{ width:54px; height:54px; object-fit:contain; border-radius:12px; border:1px solid var(--border); background:#0b1220; padding:6px }
+    h1{ margin:12px 0 6px; font-size:26px }
+    p.lead{ color:var(--muted); line-height:1.65; margin:0 0 14px }
+
+    /* Info Section */
+    .info-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+    @media (max-width:640px){ .info-row{ grid-template-columns:1fr } }
+    .info-box{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      background:linear-gradient(180deg, rgba(139,0,0,.08), rgba(139,0,0,.03));
+      border:1px solid #402020;
+      border-radius:14px;
+      padding:12px 14px;
+    }
+    .info-box i{ color:#fda4a4; font-size:18px; margin-top:2px }
+    .info-box h3{ margin:0 0 4px; font-size:15px }
+    .info-box p{ margin:0; color:#e1cfcf }
+
+    /* Form */
+    .form-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .form-header h2{margin:0;font-size:18px}
+    .badge{font-size:11px;padding:5px 9px;border-radius:999px;background:#1e0e0e;border:1px solid #3f1818;color:#f0dada}
+
+    .row-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+    @media (max-width:640px){ .row-2{ grid-template-columns:1fr } }
+
+    .input-group{ margin-bottom:12px }
+    label{ display:block; margin:0 0 6px; color:#f0dada; font-size:12px; letter-spacing:.2px }
+
+    input, select, textarea{
+      width:100%;
+      background:#1b1b21;
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:12px;
+      font-size:14px;
+      outline:none;
+      transition:border .18s, box-shadow .18s, transform .06s;
+    }
+    textarea{ min-height:100px; resize:vertical }
+    input:focus, select:focus, textarea:focus{
+      border-color:var(--accent-2);
+      box-shadow:0 0 0 3px var(--ring);
+    }
+
+    /* Actions */
+    .actions{ display:flex; gap:10px; align-items:center; margin-top:6px }
+    .btn{
+      position:relative;
+      overflow:hidden;
+      border:none;
+      cursor:pointer;
+      color:#fff0f0;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      padding:12px 14px;
+      border-radius:12px;
+      font-weight:600;
+      letter-spacing:.2px;
+      transition: transform .06s ease, filter .18s ease;
+    }
+    .btn:hover{ filter:brightness(1.03) saturate(1.05) }
+    .btn:active{ transform: translateY(1px) }
+    .btn::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: radial-gradient(120% 120% at -10% -10%, rgba(255,255,255,.25), transparent 40%);
+      opacity:.0;
+      transition:opacity .25s ease;
+    }
+    .btn:hover::before{ opacity:.8 }
+
+    .link{ color:#fcbaba; text-decoration:none; font-size:13px }
+    .link:hover{ text-decoration:underline }
+
+    .footer{ text-align:center; color:#c9b5b5; font-size:12px; margin-top:16px; opacity:.9 }
+
+    /* Toast */
+    .toast{
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:#1b1b21;
+      color:#ffeaea;
+      border:1px solid #402020;
+      padding:10px 12px;
+      border-radius:12px;
+      box-shadow:var(--shadow);
+      display:none;
+      z-index:30
+    }
+    .toast.ok{ border-color:#065f46; color:#d1fae5; background:#0b1f1a }
+    .toast.warn{ border-color:#7c2d12; color:#ffedd5; background:#1b130c }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top">
+      <div class="brand">
+        <img src="logo.png" alt="JC"/>
+        <div>JC Nexus Hub • Beverage Service</div>
+      </div>
+      <div id="now"></div>
+    </div>
+
+    <div class="grid">
+      <!-- Info Section -->
+      <div class="card">
+        <img src="logo.png" alt="JC Logo" class="logo"/>
+        <h1>Beverage Ordering</h1>
+        <p class="lead">Order refreshing beverages and have them delivered directly to your desk. Track your order live from the dashboard.</p>
+
+        <div class="info-row">
+          <div class="info-box">
+            <i class="fas fa-mug-hot"></i>
+            <div>
+              <h3>Freshly Prepared</h3>
+              <p>Your drinks are prepared instantly upon order.</p>
+            </div>
+          </div>
+          <div class="info-box">
+            <i class="fas fa-truck"></i>
+            <div>
+              <h3>Fast Delivery</h3>
+              <p>Delivered directly to your specified floor and desk.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Section -->
+      <div class="card">
+        <div class="form-header">
+          <h2>Place New Beverage Order</h2>
+          <span class="badge">Instant Service</span>
+        </div>
+
+        <form id="beverage-form" action="/api/beverage/orders" method="POST" novalidate>
+          <!-- Location Info -->
+          <div class="row-2">
+            <div class="input-group">
+              <label for="floorNumber">Floor Number</label>
+              <input type="text" id="floorNumber" name="floorNumber" placeholder="e.g., 2nd Floor" required/>
+            </div>
+            <div class="input-group">
+              <label for="deskNumber">Desk Number</label>
+              <input type="text" id="deskNumber" name="deskNumber" placeholder="e.g., 14B" required/>
+            </div>
+          </div>
+
+          <!-- Beverage Selection -->
+          <div class="input-group">
+            <label for="beverage">Select Beverage</label>
+            <select id="beverage" name="beverage" required>
+              <option value="" disabled selected>Select a drink</option>
+              <optgroup label="Hot Beverages">
+                <option>Coffee</option>
+                <option>Black Coffee</option>
+                <option>Masala Tea</option>
+                <option>Green Tea</option>
+                <option>Hot Chocolate</option>
+              </optgroup>
+              <optgroup label="Cold / Soft Drinks">
+                <option>Coca-Cola</option>
+                <option>Sprite</option>
+                <option>Cold Coffee</option>
+                <option>Iced Tea</option>
+                <option>Lemon Water</option>
+              </optgroup>
+              <optgroup label="Juices / Shakes">
+                <option>Orange Juice</option>
+                <option>Chocolate Milkshake</option>
+                <option>Smoothie</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Special Instructions -->
+          <div class="input-group">
+            <label for="instructions">Special Instructions</label>
+            <textarea id="instructions" name="instructions" placeholder="e.g., Less sugar, extra ice, deliver to Floor 2, Desk 14"></textarea>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn">Place Order</button>
+            <a class="link" href="/employee-dashboard">Back to Dashboard</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="footer">© JC Eletronica Pvt Ltd | All Rights Reserved</div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // Display current date and time
+    document.getElementById('now').textContent =
+      new Date().toLocaleString('en-IN', { dateStyle:'medium', timeStyle:'short' });
+
+    const form = document.getElementById('beverage-form');
+    const toast = document.getElementById('toast');
+
+    // Handle form submission with fetch
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(form).entries());
+      if (!data.floorNumber || !data.deskNumber || !data.beverage) {
+        return showToast('Please fill all required fields.', 'warn');
+      }
+      try {
+        const res = await fetch(form.action, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(data)
+        });
+        if(!res.ok) throw new Error('Request failed');
+        showToast('Order placed successfully!', 'ok');
+        setTimeout(()=> window.location.href='/employee-dashboard', 1000);
+      } catch {
+        showToast('Unable to place order. Try again.', 'warn');
+      }
+    });
+
+    // Toast notification
+    function showToast(msg, type){
+      toast.textContent = msg;
+      toast.className = 'toast ' + (type || '');
+      toast.style.display = 'block';
+      setTimeout(()=> toast.style.display = 'none', 2500);
+    }
+  </script>
+</body>
+</html>
