@@ -166,6 +166,6 @@ This project is licensed under the MIT License.
 
 Author
 
-Developed by Devraj Nayak,Piyush Khaneja
+Developed by Devraj Nayak
 
 Integrated-Workplace-Service-Portal – Workplace Management System.
